@@ -7,8 +7,6 @@ import collections
 with open('dictionary_words.txt') as f:
     dictionary = [s.strip().upper() for s in f.readlines()]
 
-print(dictionary[:100])
-
 def find_word(input_str):
     # 各文字がいくつずつあるのか辞書にまとめる
     input_count = collections.Counter(input_str)
@@ -67,7 +65,6 @@ if __name__ == '__main__':
         input_list = [input().upper() for _ in range(16)]
         # 'Qu'をばらけさせたいので、文字列に変換
         input_str = ''.join(input_list)
-        print(input_str)
         best_score, best_word = find_word(input_str)
         if best_word is None:
             print('PASS')
