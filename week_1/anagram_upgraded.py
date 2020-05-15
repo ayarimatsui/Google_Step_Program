@@ -2,9 +2,9 @@
 
 import collections
 
-# ファイル'dictionary_words.txt'を読み込み、リストdictionaryに格納
+# ファイル'dictionary_words.txt'を読み込み、全て小文字にしてリストdictionaryに格納
 with open('dictionary_words.txt') as f:
-    dictionary = [s.strip() for s in f.readlines()]
+    dictionary = [s.strip().lower() for s in f.readlines()]
 
 def find_anagram_upgraded(S):
     # 各文字がいくつずつあるのか辞書にまとめる
@@ -12,8 +12,6 @@ def find_anagram_upgraded(S):
     # 辞書中の各単語ごとに、各文字がいくつずつあるのか数えて、新しい辞書を作る
     new_dictionary = []
     for word in dictionary:
-        # 全て小文字に変換
-        word.lower()
         word_count = collections.Counter(word)
         new_dictionary.append([word, word_count])
 
