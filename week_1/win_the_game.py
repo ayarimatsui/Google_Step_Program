@@ -78,3 +78,38 @@ if __name__ == '__main__':
         else:
             print(best_word)
             print(best_score)
+
+    '''
+    出力例:
+
+    HOMOGENIZING
+    289
+
+    QUADRUPEDS
+    169
+
+    SUNKIST
+    100
+
+    CONFOUND
+    121
+
+    HANDWORK
+    169
+
+    BRAMPTON
+    121
+
+    JACKLYN
+    225
+
+    VACUUMED
+    144
+
+    KINGDOMS
+    144
+
+    GUZMAN
+    100
+    
+    '''
