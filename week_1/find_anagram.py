@@ -5,15 +5,13 @@ import numpy as np
 
 # ファイル'dictionary_words.txt'を読み込み、リストdictionaryに格納
 with open('dictionary_words.txt') as f:
-    dictionary = [s.strip() for s in f.readlines()]
+    dictionary = [s.strip().lower() for s in f.readlines()]
 
 def find_anagram(S):
     sorted_S = sorted(S)
     # 辞書の単語全てをソートした新しい辞書を作る
     new_dictionary = []
     for word in dictionary:
-        # 全て小文字に変換
-        word.lower()
         sorted_word = sorted(word)
         new_dictionary.append([sorted_word, word])
     new_dictionary.sort()
