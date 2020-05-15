@@ -1,3 +1,5 @@
+# Homework2
+
 import collections
 
 # ファイル'dictionary_words.txt'を読み込み、リストdictionaryに格納
