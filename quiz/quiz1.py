@@ -1,4 +1,3 @@
-# Boyer-Moore Voting Algorithm
 # 過半数を占めるものがある時、O(1)のメモリを使ってその値を当てる方法
 
 import sys

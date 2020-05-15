@@ -14,6 +14,15 @@ def find_word(input_str):
     new_dictionary = []
     for word in dictionary:
         word_count = collections.Counter(word)
+        if 'QU' in word:
+            qu_count = word.count('QU')
+            word_count['Q'] -= qu_count
+            word_count['U'] -= qu_count
+            word_count['QU'] += qu_count
+            if word_count['Q'] == 0:
+                word_count.pop('Q')
+            if word_count['U'] == 0:
+                word_count.pop('U')
         new_dictionary.append([word, word_count])
 
     best_word = None
@@ -63,9 +72,7 @@ if __name__ == '__main__':
     '''
     for _ in range(10):
         input_list = [input().upper() for _ in range(16)]
-        # 'Qu'をばらけさせたいので、文字列に変換
-        input_str = ''.join(input_list)
-        best_score, best_word = find_word(input_str)
+        best_score, best_word = find_word(input_list)
         if best_word is None:
             print('PASS')
         else:
