@@ -3,7 +3,7 @@
 import bisect
 import numpy as np
 
-# ファイル'dictionary_words.txt'を読み込み、リストdictionaryに格納
+# ファイル'dictionary_words.txt'を読み込み、全て小文字に変換してリストdictionaryに格納
 with open('dictionary_words.txt') as f:
     dictionary = [s.strip().lower() for s in f.readlines()]
 
