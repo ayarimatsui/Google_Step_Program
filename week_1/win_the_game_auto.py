@@ -1,9 +1,11 @@
 # Homework2の発展課題  自動化したもの
 # i can haz wordz で高得点取れる文字列を返すプログラム
-# 現在1位のscoreを超える点数を出さない限り、ゲームをやり続ける
 
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.chrome.options import Options
+from bs4 import BeautifulSoup
+import pyperclip
 import time
 import collections
 
@@ -25,7 +27,24 @@ def make_new_dic():
                 word_count.pop('Q')
             if word_count['U'] == 0:
                 word_count.pop('U')
-        new_dictionary.append([word, word_count])
+
+        # 各単語の得点を計算しておく
+        score = 0
+        for i in range(len(word)):
+            if word[i] in ['A', 'B', 'D', 'E', 'G', 'I', 'N', 'O', 'R', 'S', 'T', 'U']:
+                score += 1
+                # i - 1文字目が'Q', i文字目が'U'の時は'U'で足してしまった1をscoreから引く
+                if i > 0:
+                    if [word[i - 1], word[i]] == ['Q', 'U']:
+                        score -= 1
+            elif word[i] in ['C', 'F', 'H', 'L', 'M', 'P', 'V', 'W', 'Y']:
+                score += 2
+            else:
+                score += 3
+        score = (score + 1) ** 2
+        new_dictionary.append([word, word_count, score])
+
+    new_dictionary.sort(key=lambda x: x[2], reverse=True)
 
     return new_dictionary
 
@@ -48,38 +67,38 @@ def find_word(input_str, new_dictionary):
                 flag = False
                 break
         if flag:
-            # 得点を計算する
-            score = 0
-            for j in range(len(new_dictionary[i][0])):
-                if new_dictionary[i][0][j] in ['A', 'B', 'D', 'E', 'G', 'I', 'N', 'O', 'R', 'S', 'T', 'U']:
-                    score += 1
-                    # j - 1文字目が'Q', j文字目が'U'の時は'U'で足してしまった1をscoreから引く
-                    if j > 0:
-                        if [new_dictionary[i][0][j - 1], new_dictionary[i][0][j]] == ['Q', 'U']:
-                            score -= 1
-                elif new_dictionary[i][0][j] in ['C', 'F', 'H', 'L', 'M', 'P', 'V', 'W', 'Y']:
-                    score += 2
-                else:
-                    score += 3
-            score = (score + 1) ** 2
+            score = new_dictionary[i][2]
+            best_score = score
+            best_word = new_dictionary[i][0]
+            break
+            '''
             if score > best_score:
                 best_score = score
-                best_word = new_dictionary[i][0]
+                best_word = new_dictionary[i][0]'''
 
     return best_score, best_word
+
 
 if __name__ == '__main__':
     new_dictionary = make_new_dic()
 
-    webdriver = webdriver.Chrome()
+    # ブラウザのオプションを格納する変数をもらってきます。
+    options = Options()
 
+    # Headlessモードを有効にする（コメントアウトするとブラウザがz
+    options.set_headless(True)
+
+    webdriver = webdriver.Chrome(chrome_options=options)
+    '''
     # 現在1位のスコアを獲得する
     webdriver.get("https://icanhazwordz.appspot.com/highscores")
     record_selector = "body > table.pure-table.pure-table-bordered > tbody > tr:nth-child(1) > td:nth-child(2)"
     record_list = webdriver.find_elements_by_css_selector(record_selector)
     for r in record_list:
         record = int(r.text)
-    print(record)
+    print(record)'''
+
+    record = 2200
 
     time.sleep(3)
 
@@ -87,20 +106,23 @@ if __name__ == '__main__':
     total_score = 0
 
     while total_score <= record:
+        time.sleep(0.5)
         webdriver.get("https://icanhazwordz.appspot.com/")
 
         total_score = 0
         for n in range(10):
             input_list =[]
             selector_base = "body > table:nth-child(2) > tbody > tr > td:nth-child(1) > table > tbody > "
-            for i in range(1, 5):
-                for j in range(1, 5):
-                    selector = selector_base + "tr:nth-child(" + str(i) + ") > td:nth-child(" + str(j) + ") > div"
-                    alphabets = webdriver.find_elements_by_css_selector(selector)
-                    for s in alphabets:
-                        input_list.append(s.text.upper())
+            soup = BeautifulSoup(webdriver.page_source, "html.parser")
+            alphabets = soup.findAll('div',{'class':['letter p1','letter p2','letter p3']})
+            for s in alphabets:
+                input_list.append(s.text.upper())
+
             best_score, best_word = find_word(input_list, new_dictionary)
             total_score += best_score
+            # あとで消す
+            if best_score <= 100:
+                break
             if best_word is None:
                 print('PASS')
                 pass_selector = "body > table:nth-child(2) > tbody > tr > td:nth-child(1) > form > input[type=submit]:nth-child(" + str(n + 7) + ")"
@@ -108,47 +130,53 @@ if __name__ == '__main__':
             else:
                 print(best_word)
                 print(best_score)
-                webdriver.find_element_by_xpath('//*[@id="MoveField"]').send_keys(best_word)
+                pyperclip.copy(best_word)
+                webdriver.find_element_by_xpath('//*[@id="MoveField"]').send_keys(pyperclip.paste())
                 submit_selector = "body > table:nth-child(2) > tbody > tr > td:nth-child(1) > form > input[type=submit]:nth-child(" + str(n + 6) + ")"
                 webdriver.find_element_by_css_selector(submit_selector).click()
 
-            time.sleep(1)
+            #time.sleep(0.1)
 
         if total_score > record:
-            webdriver.find_element_by_xpath('/html/body/table[1]/tbody/tr/td[1]/form/table/tbody/tr[1]/td[2]/input').send_keys("Ayari Matsui")
-            webdriver.find_element_by_xpath('/html/body/table[1]/tbody/tr/td[1]/form/table/tbody/tr[2]/td[2]/input').send_keys("https://gist.github.com/ayarimatsui/680338b328db2a9b3dda8dd3ebd4bbe4")
+            pyperclip.copy("Ayari Matsui")
+            webdriver.find_element_by_xpath('/html/body/table[1]/tbody/tr/td[1]/form/table/tbody/tr[1]/td[2]/input').send_keys(pyperclip.paste())
+            webdriver.find_element_by_xpath('/html/body/table[1]/tbody/tr/td[1]/form/table/tbody/tr[7]/td[2]/input').send_keys(pyperclip.paste())
+            pyperclip.copy("https://gist.github.com/ayarimatsui/680338b328db2a9b3dda8dd3ebd4bbe4")
+            webdriver.find_element_by_xpath('/html/body/table[1]/tbody/tr/td[1]/form/table/tbody/tr[2]/td[2]/input').send_keys(pyperclip.paste())
             github_check = webdriver.find_element_by_xpath('/html/body/table[1]/tbody/tr/td[1]/form/table/tbody/tr[3]/td[2]/input')
             if not github_check.is_selected():
                 github_check.click()
             robot_btn = webdriver.find_element_by_xpath('//*[@id="AgentRobot"]')
             robot_btn.click()
-            webdriver.find_element_by_xpath('/html/body/table[1]/tbody/tr/td[1]/form/table/tbody/tr[7]/td[2]/input').send_keys("Ayari Matsui")
-            webdriver.find_element_by_xpath('/html/body/table[1]/tbody/tr/td[1]/form/table/tbody/tr[8]/td[2]/input').send_keys("ayanapo9846@gmail.com")
+            pyperclip.copy("ayanapo9846@gmail.com")
+            webdriver.find_element_by_xpath('/html/body/table[1]/tbody/tr/td[1]/form/table/tbody/tr[8]/td[2]/input').send_keys(pyperclip.paste())
             webdriver.find_element_by_xpath('/html/body/table[1]/tbody/tr/td[1]/form/input[13]').click()
+            print('recorded')
             break
+
 
     '''
     出力例:
 
-    COEXISTING
+    SECULARIZING
+    289
+    FRECKLED
     196
-    YARMULKES
+    JAYWALKING
+    324
+    RHAPSODIZED
+    256
+    CULTIVATING
     225
-    FORGIVABLE
+    BOMBARDIER
+    144
+    FLUKY
+    121
+    FOXHOUND
+    169
+    MIDDLEBROW
     196
-    KLUTZES
-    169
-    PERFORM
-    121
-    BREZHNEV
-    169
-    MCGOVERN
-    144
-    YUCKING
-    144
-    CULBERTSON
-    169
-    PHILBY
-    121
+    GRATEFULLY
+    225
 
     '''
