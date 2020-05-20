@@ -1,6 +1,7 @@
 # Homework2の発展課題  自動化したもの
 # i can haz wordz で高得点取れる文字列を返すプログラム
 
+import chromedriver_binary
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.options import Options
@@ -13,31 +14,33 @@ import collections
 with open('dictionary_words.txt') as f:
     dictionary = [s.strip().upper() for s in f.readlines()]
 
+def parse_word(word):
+    result = []
+    skip = False
+    for i, s in enumerate(word):
+      if skip:
+        skip = False
+        continue
+      if s == 'Q' and i + 1 < len(word) and word[i + 1] == 'U':
+        result.append('QU')
+        skip = True
+        continue
+      result.append(s)
+    return result
+
 def make_new_dic():
     # 辞書中の各単語ごとに、各文字がいくつずつあるのか数えて、新しい辞書を作る
     new_dictionary = []
     for word in dictionary:
+        word = parse_word(word)
         word_count = collections.Counter(word)
-        if 'QU' in word:
-            qu_count = word.count('QU')
-            word_count['Q'] -= qu_count
-            word_count['U'] -= qu_count
-            word_count['QU'] += qu_count
-            if word_count['Q'] == 0:
-                word_count.pop('Q')
-            if word_count['U'] == 0:
-                word_count.pop('U')
 
         # 各単語の得点を計算しておく
         score = 0
-        for i in range(len(word)):
-            if word[i] in ['A', 'B', 'D', 'E', 'G', 'I', 'N', 'O', 'R', 'S', 'T', 'U']:
+        for s in word:
+            if s in ['A', 'B', 'D', 'E', 'G', 'I', 'N', 'O', 'R', 'S', 'T', 'U']:
                 score += 1
-                # i - 1文字目が'Q', i文字目が'U'の時は'U'で足してしまった1をscoreから引く
-                if i > 0:
-                    if [word[i - 1], word[i]] == ['Q', 'U']:
-                        score -= 1
-            elif word[i] in ['C', 'F', 'H', 'L', 'M', 'P', 'V', 'W', 'Y']:
+            elif s in ['C', 'F', 'H', 'L', 'M', 'P', 'V', 'W', 'Y']:
                 score += 2
             else:
                 score += 3
@@ -57,24 +60,18 @@ def find_word(input_str, new_dictionary):
     best_word = None
     best_score = 0
     # 新しく作った辞書の単語について前から一つずつ調べていく
-    for i in range(len(new_dictionary)):
-        flag = True
-        '''辞書中の単語が引数の文字列に使われている文字しか使っておらず、かつそれぞれの文字の登場回数が
-        　　元々の文字列以下の時のみ、flag = True のままになるようにする
-        '''
-        for k, v in new_dictionary[i][1].items():
-            if (k not in input_count.keys()) or (v > input_count[k]):
-                flag = False
+    for word, word_count, score in new_dictionary:
+        anagram = True
+        for k, v in word_count.items():
+            if input_count.get(k, 0) >= v:
+                anagram = True
+            else:
+                anagram = False
                 break
-        if flag:
-            score = new_dictionary[i][2]
+        if anagram:
             best_score = score
-            best_word = new_dictionary[i][0]
+            best_word = "".join(word)
             break
-            '''
-            if score > best_score:
-                best_score = score
-                best_word = new_dictionary[i][0]'''
 
     return best_score, best_word
 
@@ -84,7 +81,6 @@ if __name__ == '__main__':
 
     # ブラウザのオプションを格納する変数をもらってきます。
     options = Options()
-
     # Headlessモードを有効にする（コメントアウトするとブラウザがz
     options.set_headless(True)
 
@@ -117,6 +113,8 @@ if __name__ == '__main__':
             alphabets = soup.findAll('div',{'class':['letter p1','letter p2','letter p3']})
             for s in alphabets:
                 input_list.append(s.text.upper())
+
+            input_list = parse_word(input_list)
 
             best_score, best_word = find_word(input_list, new_dictionary)
             total_score += best_score
