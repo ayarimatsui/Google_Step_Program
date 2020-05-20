@@ -1,11 +1,20 @@
 # Homework 1
 
 import bisect
-import numpy as np
 
 # ファイル'dictionary_words.txt'を読み込み、全て小文字に変換してリストdictionaryに格納
 with open('dictionary_words.txt') as f:
-    dictionary = [s.strip().lower() for s in f.readlines()]
+    dictionary = [s.strip().lower() for s in f]
+
+class KeyList(object):
+    # bisect doesn't accept a key function, so we build the key into our sequence.
+    def __init__(self, l, key):
+        self.l = l
+        self.key = key
+    def __len__(self):
+        return len(self.l)
+    def __getitem__(self, index):
+        return self.key(self.l[index])
 
 def find_anagram(S):
     sorted_S = sorted(S)
@@ -16,24 +25,17 @@ def find_anagram(S):
         new_dictionary.append([sorted_word, word])
     new_dictionary.sort()
 
-    # このあと列だけ取り出したいので、スライスで簡単に列だけ取り出せるndarrayに変換
-    new_dictionary = np.array(new_dictionary)
-
     # ソートした結果が、sorted_Sと同じになるnew_dictionaryの単語のインデックスを取得
     # アナグラムが複数ある場合も考えられるので、同じ結果になる要素のインデックスの左端と右端の両方を取得しておく
-    l = bisect.bisect_left(new_dictionary[:, 0], sorted_S)
-    r = bisect.bisect_right(new_dictionary[:, 0], sorted_S)
+    left = bisect.bisect_left(KeyList(new_dictionary, key=lambda x: x[0]), sorted_S)
+    right = bisect.bisect_right(KeyList(new_dictionary, key=lambda x: x[0]), sorted_S)
 
-    # ソートした結果が同じになる単語が、辞書から１つしか見つからずそれが引数と等しかった場合、または１つも見つからなっかった場合
-    # = 元々の引数の文字列と同じもの以外、アナグラムが見つからなかった場合は、Noneを返す
-    if (l - r == 1 and new_dictionary[l][1] == S) or l - r == 0:
-        return None
 
     anagram_list = []
-    for i in range(l, r):
+    for _, target in new_dictionary[left:right]:
         # 元の単語は答えに含まない
-        if new_dictionary[i][1] != S:
-            anagram_list.append(new_dictionary[i][1])
+        if target != S:
+            anagram_list.append(target)
 
     return anagram_list
 
@@ -41,9 +43,9 @@ if __name__ == '__main__':
     # 標準入力
     S = input()
     # 全て小文字に変換
-    S.lower()
+    S = S.lower()
     ans_list = find_anagram(S)
-    if ans_list is None:
+    if len(ans_list) == 0:
         print('There is no anagram')
     else:
         for word in ans_list:

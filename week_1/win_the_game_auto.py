@@ -12,7 +12,7 @@ import collections
 
 # ファイル'dictionary_words.txt'を読み込み、 全て大文字にしてリストdictionaryに格納
 with open('dictionary_words.txt') as f:
-    dictionary = [s.strip().upper() for s in f.readlines()]
+    dictionary = [s.strip().upper() for s in f]
 
 def parse_word(word):
     result = []
