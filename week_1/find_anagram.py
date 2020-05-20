@@ -30,7 +30,6 @@ def find_anagram(S):
     left = bisect.bisect_left(KeyList(new_dictionary, key=lambda x: x[0]), sorted_S)
     right = bisect.bisect_right(KeyList(new_dictionary, key=lambda x: x[0]), sorted_S)
 
-
     anagram_list = []
     for _, target in new_dictionary[left:right]:
         # 元の単語は答えに含まない
