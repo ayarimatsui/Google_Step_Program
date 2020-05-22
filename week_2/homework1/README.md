@@ -1,4 +1,4 @@
-Google STEP Program  Week2の宿題1
+**Google STEP Program  Week2の宿題1**
 
 NxNの行列の積を求めるプログラムを、Python(ライブラリ無し)、Python(Numpy使用)、Cでそれぞれ書きました。  
 Python(ライブラリ無し)のプログラム -> matrix.py  
@@ -6,7 +6,7 @@ Python(Numpy使用)のプログラム -> matrix_np.py
 Cのプログラム -> matrix.c  
 です。
 
-また、N = 2 ~ 100　とした時の、これらの言語で書いたプログラムの実行時間をそれぞれcsvファイルに保存するようなプログラムを書きました。  
+また、N=2~99とした時の、これらの言語で書いたプログラムの実行時間をそれぞれcsvファイルに保存するようなプログラムを書きました。  
 Python(ライブラリ無し)のプログラム -> matrix_save_time.py  
 Python(Numpy使用)のプログラム -> matrix_np_save_time.py  
 Cのプログラム -> matrix_save_time.c  
