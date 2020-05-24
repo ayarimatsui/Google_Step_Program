@@ -7,6 +7,7 @@ class HashTable:
         self.size = N
         self.hashmap = [None] * self.size
 
+    # ハッシュ関数
     def hash(self, key):
         idx = 0
         for k in key:
@@ -14,6 +15,7 @@ class HashTable:
             idx %= self.size
         return idx
 
+    # ハッシュテーブルに(key, value)を入れる
     def put(self, key, value):
         idx = self.hash(key)
         if self.hashmap[idx] is None:
@@ -27,6 +29,7 @@ class HashTable:
                     break
             arr.append((key, value))
 
+    # keyを元にハッシュテーブルに保持されているvalueの値を返す (ない時は-1を返す)
     def get(self, key):
         count = 1
         idx = self.hash(key)
@@ -40,6 +43,7 @@ class HashTable:
                     return pair[1]
             return -1
 
+    # keyがハッシュテーブルの中にあるかどうかを調べる
     def contains(self, key):
         idx = self.hash(key)
         if self.hashmap[idx] is None:
@@ -52,6 +56,7 @@ class HashTable:
                     return True
             return False
 
+    # keyの要素をハッシュテーブルから削除
     def remove(self, key):
         if not self.contains(key):
             return
