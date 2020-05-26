@@ -7,14 +7,17 @@ import numpy as np
 python_file = open('matrix_python.csv', 'r')
 reader1 = csv.reader(python_file)
 python_time = [float(row[1]) for row in reader1]
+python_file.close()
 
 numpy_file = open('matrix_numpy.csv', 'r')
 reader2 = csv.reader(numpy_file)
 numpy_time = [float(row[1]) for row in reader2]
+numpy_file.close()
 
 c_file = open('matrix_c.csv', 'r')
 reader3 = csv.reader(c_file)
 c_time = [float(row[1]) for row in reader3]
+c_file.close()
 
 x = list(range(2, 100))
 

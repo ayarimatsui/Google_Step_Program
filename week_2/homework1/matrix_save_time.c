@@ -59,6 +59,7 @@ int main(int argc, char** argv)
     free(b);
     free(c);
   }
+  fclose(fp);
   printf("done\n");
   return 0;
 }
