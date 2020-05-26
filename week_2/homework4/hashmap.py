@@ -34,14 +34,14 @@ class HashTable:
         count = 1
         idx = self.hash(key)
         if self.hashmap[idx] is None:
-            return -1
+            return None
         else:
             arr = self.hashmap[idx]
             for i in range(len(arr)):
                 pair = arr[i]
                 if pair[0] == key:
                     return pair[1]
-            return -1
+            return None
 
     # keyがハッシュテーブルの中にあるかどうかを調べる
     def contains(self, key):
@@ -58,14 +58,11 @@ class HashTable:
 
     # keyの要素をハッシュテーブルから削除
     def remove(self, key):
-        if not self.contains(key):
-            return
-        else:
-            idx = self.hash(key)
-            arr = self.hashmap[idx]
-            for i in range(len(arr)):
-                pair = arr[i]
-                if pair[0] == key:
-                    del arr[i]
-                    break
-            self.size -= 1
+        idx = self.hash(key)
+        arr = self.hashmap[idx]
+        for i in range(len(arr)):
+            pair = arr[i]
+            if pair[0] == key:
+                del arr[i]
+                self.size -= 1
+                break
