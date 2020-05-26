@@ -2,16 +2,16 @@
 
 class HashTable:
 
-    def __init__(self, N):  # Nはハッシュテーブルのサイズ
-        self.size = N
-        self.hashmap = [None] * self.size
+    def __init__(self):
+        self.size = 0
+        self.hashmap = [None] * 10000
 
     # ハッシュ関数
     def hash(self, key):
         idx = 0
         for k in key:
-            idx += (ord(k) % self.size)
-            idx %= self.size
+            idx += (ord(k) % 10000)
+            idx %= 10000
         return idx
 
     # ハッシュテーブルに(key, value)を入れる
@@ -27,6 +27,7 @@ class HashTable:
                     del arr[i]
                     break
             arr.append((key, value))
+        self.size += 1
 
     # keyを元にハッシュテーブルに保持されているvalueの値を返す (ない時は-1を返す)
     def get(self, key):
@@ -46,7 +47,7 @@ class HashTable:
     def contains(self, key):
         idx = self.hash(key)
         if self.hashmap[idx] is None:
-            return None
+            return False
         else:
             arr = self.hashmap[idx]
             for i in range(len(arr)):
@@ -67,3 +68,4 @@ class HashTable:
                 if pair[0] == key:
                     del arr[i]
                     break
+            self.size -= 1
