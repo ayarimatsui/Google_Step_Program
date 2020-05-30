@@ -32,10 +32,10 @@ def readOperator(line, index):
   return token, index + 1
 
 
-# calculate the inside of the parentheses
+# calculate expressions inside of parentheses
 def culculateParentheses(line, index):
   index += 1
-  inside_tokens = []    # tokenize the expressions in the parentheses
+  inside_tokens = []    # tokens list to tokenize expressions in parentheses
   while line[index] != ')':
     if line[index].isdigit():
       (inside_token, index) = readNumber(line, index)
@@ -48,7 +48,7 @@ def culculateParentheses(line, index):
       else:     # the case it is an operator
         (inside_token, index) = readOperator(line, index)
     inside_tokens.append(inside_token)
-  # evaluate the expressions in the parentheses
+  # evaluate expressions in parentheses
   num_in_parentheses = evaluate(inside_tokens)
   token = {'type': 'NUMBER', 'number': num_in_parentheses}    # return the culculated result as a number
   return token, index + 1
@@ -136,6 +136,7 @@ def runTest():
   test("(3.0+4*(2-1))/5")
   test("(3.0+4*(2-1))/5+(6-4)*2")
   test("(4/(5+9.0))*6")
+  test("1.0/(((900-9.0)+8)*4+6)")
   print("==== Test finished! ====\n")
 
 runTest()
