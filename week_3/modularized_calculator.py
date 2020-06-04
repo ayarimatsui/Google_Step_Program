@@ -28,7 +28,7 @@ def readOperator(line, index):
   elif line[index] == '/':
     token = {'type': 'DIV'}
   else:
-    return False
+    return None
   return token, index + 1
 
 
@@ -39,24 +39,22 @@ def tokenize(line):
     if line[index].isdigit():
       (token, index) = readNumber(line, index)
     else:
-      if not readOperator(line, index):     # if it is not an operator
+      parsed = readOperator(line, index)
+      if parsed is None: # if it is not an operator
         print('Invalid character found: ' + line[index])
         exit(1)
-      else:     # the case it is an operator
-        (token, index) = readOperator(line, index)
-
+      token, index = parsed
     tokens.append(token)
   return tokens
 
 
-def evaluate(tokens):
+# a function to caluculate only multiplication and division 
+def evaluate_mul_div(tokens):
   tokens.insert(0, {'type': 'PLUS'}) # Insert a dummy '+' token
-  new_tokens = []  # a list for new tokens after evaluating multiplication and division in the 1st loop
+  new_tokens = []  # a list for new tokens after evaluating multiplication and division
   new_tokens.append({'type': 'PLUS'})  # Append a dummy '+' token
   index = 1
   tmp = 1   # a varable used to calculate multiplication and division
-  # the loop to caluculate multiplication and division first
-  # it does not calculate addition and subtraction in this loop
   while index < len(tokens):
     if tokens[index]['type'] == 'NUMBER':
       if tokens[index - 1]['type'] == 'PLUS' or tokens[index - 1]['type'] == 'MINUS':
@@ -78,20 +76,31 @@ def evaluate(tokens):
         print('Invalid syntax')
         exit(1)
     index += 1
-  #print(new_tokens)
+  return new_tokens
+
+
+# a function to caluculate only addition and subtraction
+def evaluate_add_sub(tokens):
   answer = 0
   index = 1     # start from index 1 again
   # the second loop to calculate addition and subtraction
-  while index < len(new_tokens):
-    if new_tokens[index]['type'] == 'NUMBER':
-      if new_tokens[index - 1]['type'] == 'PLUS':
-        answer += new_tokens[index]['number']
-      elif new_tokens[index - 1]['type'] == 'MINUS':
-        answer -= new_tokens[index]['number']
+  while index < len(tokens):
+    if tokens[index]['type'] == 'NUMBER':
+      if tokens[index - 1]['type'] == 'PLUS':
+        answer += tokens[index]['number']
+      elif tokens[index - 1]['type'] == 'MINUS':
+        answer -= tokens[index]['number']
       else:
         print('Invalid syntax')
         exit(1)
     index += 1
+  return answer
+
+
+def evaluate(tokens):
+  # calculate only multiplication and division first and get a new tokens
+  new_tokens = evaluate_mul_div(tokens)
+  answer = evaluate_add_sub(new_tokens)
   return answer
 
 
@@ -108,6 +117,8 @@ def test(line):
 # Add more tests to this function :)
 def runTest():
   print("==== Test started! ====")
+  test("0")
+  test("0+0")
   test("1+2")
   test("1.0+2.1-3")
   test("1")
