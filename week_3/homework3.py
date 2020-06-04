@@ -108,7 +108,7 @@ def evaluate_add_sub(tokens):
   return answer
 
 
-# this function evaluate inside parenthesis
+# this function evaluate expressions inside parenthesis
 def evaluate(tokens, index):
   first_tokens = []
   while tokens[index]['type'] != 'CLOSE_PARENTHESIS':
