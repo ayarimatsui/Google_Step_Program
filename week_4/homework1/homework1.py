@@ -120,7 +120,7 @@ if __name__ == '__main__':
     # check whether my account(jamie) can be reached from target(adrian)
     distance_from_target = bfs(node_list, target_id, my_id)
     if distance_from_target is None:
-        print('There is no path from adrian to me')
+        print('There is no path from {} to {}'.format(node_list[target_id].nickname, node_list[my_id].nickname))
     else:
         print('the distance from {} to {} : {}'.format(node_list[target_id].nickname, node_list[my_id].nickname, distance_from_target))
 
