@@ -111,6 +111,8 @@ if __name__ == '__main__':
 
     print(' -> '.join(route))
 
+
+    # find the shortest path from start to goal
     total_cost, route = dijkstra(wiki_page_list, N, start_id, goal_id)
 
     if total_cost is None:
