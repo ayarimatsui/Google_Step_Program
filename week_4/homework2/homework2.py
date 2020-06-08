@@ -1,17 +1,11 @@
-# Google STEP Program week4  homework2
-# evaluate page rank of the pages linked from pages related to  Disney films
-# 重すぎて計算できない
-
 from collections import deque
-import requests, bs4
-import numpy as np
+import heapq
 
 class Page:
     def __init__(self, name):
         self.name = name
         self.link_to = []
         self.link_from = []
-        self.score = 100
 
     def add_link_to(self, page_id):
         self.link_to.append(page_id)
@@ -19,65 +13,90 @@ class Page:
     def add_link_from(self, page_id):
         self.link_from.append(page_id)
 
+    def get_linked_pages(self):
+        return self.link_to
 
-# return the top 10
-def calculate_page_rank(wiki_page_list, initial_state):
-    alpha = 0.85
-    N = len(wiki_page_list)
-    S = np.zeros((N, N))
-    E = np.full((N, N), 1.0 / N)
-    for ID, page in enumerate(wiki_page_list):
-        M = len(page.link_to)
-        for page_id in page.link_to:
-            S[ID][page_id] = 1.0 / M
+
+
+# breadth first search
+# find the loop size of 6
+# bfs
+def find_loop(page_list, N, target):
+    # create queue and append root node
+    q = deque()
+    q.append([0, [target]])  # distance, route
+    check_list = [0] * N  # 1 if already checked
+
+    route_list = []
+    # repeat while the queue is not empty
+    while len(q) > 0:
+        # take out the first node in the queue
+        dist, route = q.popleft()
+        if dist >= 7:
+            break
+
+        node_id = route[-1]
+
+        if dist == 6 and node_id == target:
+            if len(set(route)) == 6:
+                print('found a loop size of 6 from {} to {}!!'.format(page_list[target].name, page_list[target].name))
+                route_list = route
+                break
+
+        for page in page_list[node_id].link_to:
+            if check_list[page] == 0:
+                if page != target:
+                    check_list[page] = 1
+                q.append([dist + 1, route + [page]])
+
+    loop_pages = []
+    for page_id in route_list:
+        loop_pages.append(page_list[page_id].name)
     
-    G = alpha * S + (1 - alpha) * E
-    print('G calculated')
+    return loop_pages
 
-    # とりあえず100回遷移
-    page_score = initial_state.T
-    for _ in range(100):
-        page_score = np.dot(page_score, G)
 
-    page_score = page_score.T
-    page_rank = page_score.argsort()[::-1]
+# dijkstra algorithm
+def dijkstra(page_list, N, start, goal):
+    dist = [float('inf')] * N
+    dist[start] = 0
+    q = []
+    heapq.heappush(q, [0, [start]])
 
-    top_10 = []
-    for ID in page_rank[:10]:
-        top_10.append(wiki_page_list[ID].name)
+    while len(q) > 0:
+        # take out the smallest from the heap
+        total_cost, route = heapq.heappop(q)
+        last = route[-1]
+        # if it reaches the goal
+        if last == goal:
+            return total_cost, route
+        
+        for page_id in page_list[last].link_to:
+            if dist[page_id] > dist[last] + 1:
+                dist[page_id] = dist[last] + 1
+                heapq.heappush(q, [dist[page_id], route + [page_id]])
 
-    return top_10
-
+    return None, []
 
 
 if __name__ == '__main__':
-
-    # wikipedia category:ディズニーの映画作品　のurl
-    url = 'https://ja.wikipedia.org/wiki/Category:%E3%83%87%E3%82%A3%E3%82%BA%E3%83%8B%E3%83%BC%E3%81%AE%E6%98%A0%E7%94%BB%E4%BD%9C%E5%93%81'
-    res = requests.get(url)
-    soup = bs4.BeautifulSoup(res.text, "html.parser")
-    contents = soup.select('.mw-category-group')
-    # collect the page names of the pages about Disney movies
-    disney_films = []
-    for block in contents:
-        block_text = block.getText()
-        block_list = block_text.splitlines()
-        for text in block_list:
-            if text[0] != '►' and len(text) > 1:
-                disney_films.append(text)
-                
+    target_name = 'Google'
+    start_name = '渋谷'
+    goal_name = '東京ディズニーランド'
     wiki_page_list = []
-    initial_state = []
+    N = 0
     # read wikipedia_links/pages.txt and make a list of pages
-    # also make the initial state
     with open('wikipedia_links/pages.txt') as pages_f:
         for line in pages_f:
             ID, name = line.strip().split()
             wiki_page_list.append(Page(name))
-            if name in disney_films:
-                initial_state.append(1)
-            else:
-                initial_state.append(0)
+            N += 1
+            if name == target_name:
+                target_id = int(ID)
+            if name == start_name:
+                start_id = int(ID)
+            if name == goal_name:
+                goal_id = int(ID)
 
     # read links.txt and record follows
     # this takes a lot of time
@@ -87,9 +106,24 @@ if __name__ == '__main__':
             wiki_page_list[ID].add_link_to(link)
             wiki_page_list[link].add_link_from(ID)
 
-    print('done')
+    # find a loop size of 6 from target to target
+    route = find_loop(wiki_page_list, N, target_id)
 
-    top_10 = calculate_page_rank(wiki_page_list, initial_state)
+    print(' -> '.join(route))
 
-    for n, page_name in enumerate(top_10):
-        print('{} : {}'.format(n + 1, page_name))
+    total_cost, route = dijkstra(wiki_page_list, N, start_id, goal_id)
+
+    if total_cost is None:
+        print('There is no route to go to {} from {}'.format(goal_name, start_name))
+    else:
+        route_names = []
+        for page_id in route:
+            route_names.append(wiki_page_list[page_id].name)
+        print('The shortest route from {} to {} is : {}'.format(start_name, goal_name, ' -> '.join(route_names)))
+        print('total count from {} to {} is :  {}'.format(start_name, goal_name, total_cost))
+
+    ####### 実行結果 #######
+    #   found a loop size of 6 from Google to Google!!
+    #   Google -> Amazon.com -> オランダ -> 電力自由化 -> 中国華能集団 -> 中国のソフトウェア産業 -> Google
+    #   The shortest route from 渋谷 to 東京ディズニーランド is : 渋谷 -> 川越市 -> 東京ディズニーランド
+    #   total count from 渋谷 to 東京ディズニーランド is :  2
