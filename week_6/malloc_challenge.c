@@ -224,7 +224,68 @@ void* my_malloc(size_t size) {
 // This is called every time an object is freed.  You are not allowed to use
 // any library functions other than mmap_from_system / munmap_to_system.
 void my_free(void* ptr) {
-  simple_free(ptr);  // Rewrite!
+  // Look up the metadata. The metadata is placed just prior to the object.
+  //
+  // ... | metadata | object | ...
+  //     ^          ^
+  //     metadata   ptr
+  simple_metadata_t* metadata_to_free = (simple_metadata_t*)ptr - 1;
+  simple_metadata_t* metadata = simple_heap.free_head;
+  simple_metadata_t* prev = NULL;
+  simple_metadata_t* con_prev = NULL;
+  simple_metadata_t* con_prev_prev = NULL;
+  simple_metadata_t* con_next = NULL;
+  simple_metadata_t* con_next_prev = NULL;
+
+  // Search for continuous free area with the new freed area.
+  while (metadata) {
+    if ((simple_metadata_t*)((char*)metadata + 1 + metadata->size) == metadata_to_free) {
+        con_prev = metadata;
+        con_prev_prev = prev;
+    }
+    if ((simple_metadata_t*)((char*)ptr + metadata_to_free->size) == metadata) {
+        con_next = metadata;
+        con_next_prev = prev;
+    }
+    if (con_prev || con_next) {
+        break;
+    }
+    prev = metadata;
+    metadata = metadata->next;
+  }
+  if (con_prev && con_next) {
+      //printf("1");
+      simple_remove_from_free_list(con_prev, con_prev_prev);
+      simple_remove_from_free_list(con_next, con_next_prev);
+      simple_metadata_t* new_metadata = con_prev;
+      size_t size = con_prev->size + metadata_to_free->size + con_next->size;
+      new_metadata->size = size;
+      new_metadata->next = NULL;
+      simple_add_to_free_list(new_metadata);
+  }
+  else if (con_prev) {
+      //printf("2");
+      simple_remove_from_free_list(con_prev, con_prev_prev);
+      simple_metadata_t* new_metadata = con_prev;
+      size_t size = con_prev->size + metadata_to_free->size;
+      new_metadata->size = size;
+      new_metadata->next = NULL;
+      simple_add_to_free_list(new_metadata);
+  }
+  else if (con_next) {
+      //printf("3");
+      simple_remove_from_free_list(con_next, con_next_prev);
+      simple_metadata_t* new_metadata = metadata_to_free;
+      size_t size = metadata_to_free->size + con_next->size;
+      new_metadata->size = size;
+      new_metadata->next = NULL;
+      simple_add_to_free_list(new_metadata);
+  }
+  else {
+      //printf("4");
+      // Add the free slot to the free list.
+      simple_add_to_free_list(metadata_to_free);
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
