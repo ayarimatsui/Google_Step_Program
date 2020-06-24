@@ -225,6 +225,22 @@ typedef struct my_heap_t {
 
 my_heap_t my_heap;
 
+// Remove a free slot from the free list.
+void my_remove_from_free_list(my_metadata_t* metadata) {
+  my_metadata_t* prev = metadata->prev;
+  my_metadata_t* next = metadata->next;
+  if (prev) {
+    prev->next = next;
+  } else {
+    my_heap.free_head = next;
+  }
+  if (next) { 
+    next->prev = prev;
+  }
+  metadata->prev = NULL;
+  metadata->next = NULL;
+}
+
 // Add a free slot in ascending order (size).
 void my_add_to_free_list(my_metadata_t* metadata) {
   assert(!metadata->prev);
@@ -232,6 +248,30 @@ void my_add_to_free_list(my_metadata_t* metadata) {
   size_t size = metadata->size;
   my_metadata_t* cur_metadata = my_heap.free_head;
   my_metadata_t* prev = NULL;
+  // if there are continuous free slots, unite them.
+  while (cur_metadata) {
+      if ((my_metadata_t*)((char*)(cur_metadata + 1) + cur_metadata->size) == metadata) {
+          prev = cur_metadata;
+          cur_metadata = cur_metadata->next;
+          my_remove_from_free_list(prev);
+          my_metadata_t* metadata_to_free = metadata;
+          metadata = prev;
+          metadata->size = prev->size + sizeof(my_metadata_t) + metadata_to_free->size;
+      }
+      else if ((my_metadata_t*)((char*)(metadata + 1) + metadata->size) == cur_metadata) {
+          prev = cur_metadata;
+          cur_metadata = cur_metadata->next;
+          my_remove_from_free_list(prev);
+          metadata->size = metadata->size + sizeof(my_metadata_t) + prev->size;
+      }
+      else {
+          prev = cur_metadata;
+          cur_metadata = cur_metadata->next;
+      }
+  }
+  size = metadata->size;
+  cur_metadata = my_heap.free_head;
+  prev = NULL;
   while (cur_metadata && cur_metadata->size < size) {
       prev = cur_metadata;
       cur_metadata = cur_metadata->next;
@@ -242,22 +282,6 @@ void my_add_to_free_list(my_metadata_t* metadata) {
   if (cur_metadata) {
       cur_metadata->prev = metadata;
   }
-}
-
-// Remove a free slot from the free list.
-void my_remove_from_free_list(my_metadata_t* metadata) {
-  my_metadata_t* prev = metadata->prev;
-  my_metadata_t* next = metadata->next;
-  if (prev) {
-    prev->next = next;
-  } else {
-    my_heap.free_head = next;
-  }
-  if (next) {
-    next->prev = prev;
-  }
-  metadata->prev = NULL;
-  metadata->next = NULL;
 }
 
 // This is called only once at the beginning of each challenge.
