@@ -208,9 +208,29 @@ void simple_free(void* ptr) {
 //
 // Your job is to invent a smarter malloc algorithm here :)
 
+typedef struct my_simple_metadata_t {
+  size_t size;
+  struct my_simple_metadata_t* prev;
+  struct my_simple_metadata_t* next;
+} my_simple_metadata_t;
+
+// The global information of the simple malloc.
+//   *  |free_head| points to the first free slot.
+//   *  |dummy| is a dummy free slot (only used to make the free list
+//      implementation simpler).
+typedef struct my_simple_heap_t {
+  my_simple_metadata_t* free_head;
+  my_simple_metadata_t dummy;
+} my_simple_heap_t;
+
+my_simple_heap_t my_simple_heap;
+
 // This is called only once at the beginning of each challenge.
 void my_initialize() {
-  simple_initialize();  // Rewrite!
+  my_simple_heap.free_head = &simple_heap.dummy;
+  my_simple_heap.dummy.size = 0;
+  my_simple_heap.dummy.prev = NULL;
+  my_simple_heap.dummy.next = NULL;
 }
 
 // This is called every time an object is allocated. |size| is guaranteed
@@ -218,74 +238,66 @@ void my_initialize() {
 // allowed to use any library functions other than mmap_from_system /
 // munmap_to_system.
 void* my_malloc(size_t size) {
-  return simple_malloc(size);  // Rewrite!
+  //return simple_malloc(size);  // Rewrite!
+  simple_metadata_t* metadata = simple_heap.free_head;
+  simple_metadata_t* prev = NULL;
+  // First-fit: Find the first free slot the object fits.
+  while (metadata && metadata->size < size) {
+    prev = metadata;
+    metadata = metadata->next;
+  }
+  
+  if (!metadata) {
+    // There was no free slot available. We need to request a new memory region
+    // from the system by calling mmap_from_system().
+    //
+    //     | metadata | free slot |
+    //     ^
+    //     metadata
+    //     <---------------------->
+    //            buffer_size
+    size_t buffer_size = 4096;
+    simple_metadata_t* metadata = (simple_metadata_t*)mmap_from_system(buffer_size);
+    metadata->size = buffer_size - sizeof(simple_metadata_t);
+    metadata->next = NULL;
+    // Add the memory region to the free list.
+    simple_add_to_free_list(metadata);
+    // Now, try simple_malloc() again. This should succeed.
+    return simple_malloc(size);
+  }
+
+  // |ptr| is the beginning of the allocated object.
+  //
+  // ... | metadata | object | ...
+  //     ^          ^
+  //     metadata   ptr
+  void* ptr = metadata + 1;
+  size_t remaining_size = metadata->size - size;
+  metadata->size = size;
+  // Remove the free slot from the free list.
+  simple_remove_from_free_list(metadata, prev);
+  
+  if (remaining_size > sizeof(simple_metadata_t)) {
+    // Create a new metadata for the remaining free slot.
+    //
+    // ... | metadata | object | metadata | free slot | ...
+    //     ^          ^        ^
+    //     metadata   ptr      new_metadata
+    //                 <------><---------------------->
+    //                   size       remaining size
+    simple_metadata_t* new_metadata = (simple_metadata_t*)((char*)ptr + size);
+    new_metadata->size = remaining_size - sizeof(simple_metadata_t);
+    new_metadata->next = NULL;
+    // Add the remaining free slot to the free list.
+    simple_add_to_free_list(new_metadata);
+  }
+  return ptr;
 }
 
 // This is called every time an object is freed.  You are not allowed to use
 // any library functions other than mmap_from_system / munmap_to_system.
 void my_free(void* ptr) {
-  // Look up the metadata. The metadata is placed just prior to the object.
-  //
-  // ... | metadata | object | ...
-  //     ^          ^
-  //     metadata   ptr
-  simple_metadata_t* metadata_to_free = (simple_metadata_t*)ptr - 1;
-  simple_metadata_t* metadata = simple_heap.free_head;
-  simple_metadata_t* prev = NULL;
-  simple_metadata_t* con_prev = NULL;
-  simple_metadata_t* con_prev_prev = NULL;
-  simple_metadata_t* con_next = NULL;
-  simple_metadata_t* con_next_prev = NULL;
-
-  // Search for continuous free area with the new freed area.
-  while (metadata) {
-    if ((simple_metadata_t*)((char*)metadata + 1 + metadata->size) == metadata_to_free) {
-        con_prev = metadata;
-        con_prev_prev = prev;
-    }
-    if ((simple_metadata_t*)((char*)ptr + metadata_to_free->size) == metadata) {
-        con_next = metadata;
-        con_next_prev = prev;
-    }
-    if (con_prev || con_next) {
-        break;
-    }
-    prev = metadata;
-    metadata = metadata->next;
-  }
-  if (con_prev && con_next) {
-      //printf("1");
-      simple_remove_from_free_list(con_prev, con_prev_prev);
-      simple_remove_from_free_list(con_next, con_next_prev);
-      simple_metadata_t* new_metadata = con_prev;
-      size_t size = con_prev->size + metadata_to_free->size + con_next->size;
-      new_metadata->size = size;
-      new_metadata->next = NULL;
-      simple_add_to_free_list(new_metadata);
-  }
-  else if (con_prev) {
-      //printf("2");
-      simple_remove_from_free_list(con_prev, con_prev_prev);
-      simple_metadata_t* new_metadata = con_prev;
-      size_t size = con_prev->size + metadata_to_free->size;
-      new_metadata->size = size;
-      new_metadata->next = NULL;
-      simple_add_to_free_list(new_metadata);
-  }
-  else if (con_next) {
-      //printf("3");
-      simple_remove_from_free_list(con_next, con_next_prev);
-      simple_metadata_t* new_metadata = metadata_to_free;
-      size_t size = metadata_to_free->size + con_next->size;
-      new_metadata->size = size;
-      new_metadata->next = NULL;
-      simple_add_to_free_list(new_metadata);
-  }
-  else {
-      //printf("4");
-      // Add the free slot to the free list.
-      simple_add_to_free_list(metadata_to_free);
-  }
+  simple_free(ptr);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
