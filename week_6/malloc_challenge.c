@@ -241,42 +241,22 @@ void my_remove_from_free_list(my_metadata_t* metadata) {
   metadata->next = NULL;
 }
 
-// Add a free slot in ascending order (size).
+// Add a free slot in ascending order (address).
 void my_add_to_free_list(my_metadata_t* metadata) {
   assert(!metadata->prev);
   assert(!metadata->next);
-  size_t size = metadata->size;
   my_metadata_t* cur_metadata = my_heap.free_head;
   my_metadata_t* prev = NULL;
-  // if there are continuous free slots, unite them.
-  while (cur_metadata) {
-      if ((my_metadata_t*)((char*)(cur_metadata + 1) + cur_metadata->size) == metadata) {
-          prev = cur_metadata;
-          cur_metadata = cur_metadata->next;
-          my_remove_from_free_list(prev);
-          my_metadata_t* metadata_to_free = metadata;
-          metadata = prev;
-          metadata->size = prev->size + sizeof(my_metadata_t) + metadata_to_free->size;
-      }
-      else if ((my_metadata_t*)((char*)(metadata + 1) + metadata->size) == cur_metadata) {
-          prev = cur_metadata;
-          cur_metadata = cur_metadata->next;
-          my_remove_from_free_list(prev);
-          metadata->size = metadata->size + sizeof(my_metadata_t) + prev->size;
-      }
-      else {
-          prev = cur_metadata;
-          cur_metadata = cur_metadata->next;
-      }
-  }
-  size = metadata->size;
-  cur_metadata = my_heap.free_head;
-  prev = NULL;
-  while (cur_metadata && cur_metadata->size < size) {
+  
+  while (cur_metadata && cur_metadata < metadata) {
       prev = cur_metadata;
       cur_metadata = cur_metadata->next;
   }
-  prev->next = metadata;
+  if (prev) {
+    prev->next = metadata;
+  } else {
+    my_heap.free_head = metadata;
+  }
   metadata->prev = prev;
   metadata->next = cur_metadata;
   if (cur_metadata) {
@@ -299,14 +279,22 @@ void my_initialize() {
 void* my_malloc(size_t size) {
   //return simple_malloc(size);  // Rewrite!
   my_metadata_t* metadata = my_heap.free_head;
+  my_metadata_t* best_fit = NULL;
   
   // Best-fit: Find the first free slot the object fits.
-  // The free slots are sorted in ascending order so that the first free slot the object fits is the one which fits best.
-  while (metadata && metadata->size < size) {
+  while (metadata) {
+    if (!best_fit && metadata->size >= size) {
+        best_fit = metadata;
+    }
+    else if (best_fit) {
+        if (metadata->size >= size && (metadata->size - size) < (best_fit->size - size)) {
+            best_fit = metadata;
+        }
+    }
     metadata = metadata->next;
   }
   
-  if (!metadata) {
+  if (!best_fit) {
     // There was no free slot available. We need to request a new memory region
     // from the system by calling mmap_from_system().
     //
@@ -331,11 +319,11 @@ void* my_malloc(size_t size) {
   // ... | metadata | object | ...
   //     ^          ^
   //     metadata   ptr
-  void* ptr = metadata + 1;
-  size_t remaining_size = metadata->size - size;
-  metadata->size = size;
+  void* ptr = best_fit + 1;
+  size_t remaining_size = best_fit->size - size;
+  best_fit->size = size;
   // Remove the free slot from the free list.
-  my_remove_from_free_list(metadata);
+  my_remove_from_free_list(best_fit);
   
   if (remaining_size > sizeof(my_metadata_t)) {
     // Create a new metadata for the remaining free slot.
@@ -366,6 +354,40 @@ void my_free(void* ptr) {
   my_metadata_t* metadata = (my_metadata_t*)ptr - 1;
   // Add the free slot to the free list.
   my_add_to_free_list(metadata);
+  // if the previous free slot or the next free slot is continuous, unite them.
+  my_metadata_t* prev = metadata->prev;
+  my_metadata_t* next = metadata->next;
+  if (prev && next && (my_metadata_t*)((char*)(prev + 1) + prev->size) == metadata && (my_metadata_t*)((char*)(metadata + 1) + metadata->size) == next) {
+      size_t size = prev->size + metadata->size + next->size + 2 * sizeof(my_metadata_t);
+      my_remove_from_free_list(prev);
+      my_remove_from_free_list(metadata);
+      my_remove_from_free_list(next);
+      my_metadata_t* new_metadata = prev;
+      new_metadata->size = size;
+      new_metadata->prev = NULL;
+      new_metadata->next = NULL;
+      my_add_to_free_list(new_metadata);
+  }
+  else if (prev && (my_metadata_t*)((char*)(prev + 1) + prev->size) == metadata) {
+      size_t size = prev->size + metadata->size + sizeof(my_metadata_t);
+      my_remove_from_free_list(prev);
+      my_remove_from_free_list(metadata);
+      my_metadata_t* new_metadata = prev;
+      new_metadata->size = size;
+      new_metadata->prev = NULL;
+      new_metadata->next = NULL;
+      my_add_to_free_list(new_metadata);
+  }
+  else if (next && (my_metadata_t*)((char*)(metadata + 1) + metadata->size) == next) {
+      size_t size = metadata->size + next->size + sizeof(my_metadata_t);
+      my_remove_from_free_list(metadata);
+      my_remove_from_free_list(next);
+      my_metadata_t* new_metadata = metadata;
+      new_metadata->size = size;
+      new_metadata->prev = NULL;
+      new_metadata->next = NULL;
+      my_add_to_free_list(new_metadata);
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
