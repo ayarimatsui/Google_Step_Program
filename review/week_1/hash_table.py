@@ -28,7 +28,6 @@ class HashTable:
 
     # idxを元にハッシュテーブルに保持されている単語のリストを返す (ない時は空リストを返す)
     def get(self, word):
-        count = 1
         idx = self.hash(word)
         if self.hashmap[idx] is None:
             return []
