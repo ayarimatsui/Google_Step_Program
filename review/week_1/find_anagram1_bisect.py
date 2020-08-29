@@ -1,5 +1,6 @@
 # Google STEP 2020  Week1 Homework1  Review
 # 普通のアナグラムを辞書から探して返すプログラム
+# 二分探索を利用
 
 import bisect
 import time
@@ -42,6 +43,7 @@ if __name__ == '__main__':
     dic_file = 'dictionary_words.txt'
     dictionary = read_dic(dic_file)
     sorted_dic = make_new_dic(dictionary)
+    print(len(dictionary))
 
     try:
         while True:
